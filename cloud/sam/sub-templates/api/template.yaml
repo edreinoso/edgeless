@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  CloudSignalProcessFunctionArn:
+    Type: String
+    Description: Sequential lambda function to process signal
+  CloudSignalProcessConcurrentFunctionArn:
+    Type: String
+    Description: Concurrent lambda function to process signal
+  AlbEndpoint:
+    Type: String
+    Description: Alb HTTP endpoint
+  SignalPort:
+    Type: String
+    Description: Port for the signal processing application
+
+
+Resources:
+  SignalApi:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: signal_api.yaml
+      Parameters:
+        CloudSignalProcessFunctionArn: !Ref CloudSignalProcessFunctionArn
+        CloudSignalProcessConcurrentFunctionArn: !Ref CloudSignalProcessConcurrentFunctionArn
+        AlbEndpoint: !Ref AlbEndpoint
+        SignalPort: !Ref SignalPort
+
+  # SortingAPI:
+  #   Type: AWS::Serverless::Application
+  #   Properties:
+  #     Location: sorting_api.yaml
+
+Outputs:
+  ApiGatewayRestApiId:
+    Description: "Rest Api Id Output"
+    Value: !GetAtt SignalApi.Outputs.ApiGatewayRestApiId
+  ApiGatewayStageId:
+    Description: "Rest Api Stage Output"
+    Value: !GetAtt SignalApi.Outputs.ApiGatewayStageId

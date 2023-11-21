@@ -1,0 +1,91 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  Alb2FargateSg:
+    Type: String
+    Description: Security group between alb and fargate container
+  FargateSg:
+    Type: String
+    Description: Security group for fargate container
+  SignalPort:
+    Type: String
+    Description: Port for the signal processing application
+  SignalImage:
+    Type: String
+    Description: Image version of the signal process
+
+Resources:
+  # signal image v10: task signal processing
+  SignalContainer:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: signal_container.yaml
+      Parameters:
+        SignalImage: !Ref SignalImage
+        ECSCluster: !GetAtt ECSCluster.Arn
+        SignalRole: !GetAtt CloudSignalTaskRole.Arn
+  
+
+  # signal image v9: flask signal processing
+  SignalService:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: service_container.yaml
+      Parameters:
+        ECSCluster: !GetAtt ECSCluster.Arn
+        SignalRole: !GetAtt CloudSignalTaskRole.Arn
+        SignalPort: !Ref SignalPort
+        Alb2FargateSg: !Ref Alb2FargateSg
+        FargateSg: !Ref FargateSg
+
+  ECSCluster:
+    Type: 'AWS::ECS::Cluster'
+    Properties:
+      ClusterName: cloud-throughput-experiment
+
+  CloudSignalTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: signal-processing-containers-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3AccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # S3 bucket permissions
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - arn:aws:s3:::cloud-signal-throughput-experiment
+                  - arn:aws:s3:::cloud-signal-throughput-experiment/*
+              # CloudWatch permissions
+              - Effect: Allow
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "*"
+                # ECR permissions
+              - Effect: Allow
+                Action:
+                  - "ecr:GetAuthorizationToken"
+                  - "ecr:BatchCheckLayerAvailability"
+                  - "ecr:GetDownloadUrlForLayer"
+                  - "ecr:BatchGetImage"
+                Resource: "*"
+
+Outputs:
+  AlbEndpoint:
+    Description: "Alb endpoint"
+    Value: !GetAtt SignalService.Outputs.AlbEndpoint

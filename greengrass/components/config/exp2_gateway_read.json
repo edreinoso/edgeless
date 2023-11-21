@@ -1,0 +1,57 @@
+{
+    "RecipeFormatVersion": "2020-01-25",
+    "ComponentName": "${component_name}",
+    "ComponentVersion": "${component_version}",
+    "ComponentDescription": "${component_description}",
+    "ComponentPublisher": "NAME_OF_PUBLISHER",
+    "ComponentConfiguration": {
+        "DefaultConfiguration": {
+            "accessControl": {
+                "aws.greengrass.ipc.mqttproxy": {
+                    "atlassubscribecomponent:mqttproxy:1": {
+                        "policyDescription": "Allow MQTT communication to component",
+                        "operations": [
+                            "aws.greengrass#SubscribeToIoTCore"
+                        ],
+                        "resources": [
+                            "thesis/start/w2"
+                        ]
+                    }
+                },
+                "aws.greengrass.ipc.pubsub": {
+                    "atlaspublishcomponent:pubsub:1": {
+                        "policyDescription": "Allows access to publish/subscribe to all topics.",
+                        "operations": [
+                            "aws.greengrass#PublishToTopic"
+                        ],
+                        "resources": [
+                            "*"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "Manifests": [
+        {
+            "Platform": {
+                "os": "linux"
+            },
+            "Lifecycle": {
+                "Install": {
+                    "RequiresPrivilege": true,
+                    "script": "python3 -m pip install --user awsiotsdk"
+                },
+                "Run": {
+                    "RequiresPrivilege": true,
+                    "script": "python3 -u /path/to/your/pi/${component_name}/app.py"
+                }
+            },
+            "Artifacts": [
+                {
+                    "URI": "s3://path/to/your/bucket/${component_name}/${component_version}/app.py"
+                }
+            ]
+        }
+    ]
+}

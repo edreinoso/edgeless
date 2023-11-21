@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: thesis.edgardoreinoso.com
+  CertificateArn:
+    Type: String
+    Description: arn of the certificate
+  ApiGatewayRestApiId:
+    Type: String
+    Description: Api gateway rest api id
+  ApiGatewayStageId:
+    Type: String
+    Description: Api gateway stage id
+
+Resources:
+  ApiDomainName:
+      Type: AWS::ApiGatewayV2::DomainName
+      Properties:
+        DomainName: !Ref DomainName
+        DomainNameConfigurations:
+          - EndpointType: REGIONAL
+            CertificateArn: !Ref CertificateArn
+
+  ApiBasePathMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    DependsOn:
+      - ApiDomainName
+    Properties:
+      DomainName: !Ref DomainName
+      ApiId: !Ref ApiGatewayRestApiId
+      Stage: !Ref ApiGatewayStageId
+
+  DemoRecordSetGroup:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: Z02827362Q3YKP1YY7BWX
+      RecordSets:
+        - Name: !Ref DomainName
+          Type: A
+          AliasTarget:
+            DNSName: !GetAtt ApiDomainName.RegionalDomainName
+            HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId

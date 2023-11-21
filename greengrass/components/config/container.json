@@ -1,0 +1,50 @@
+{
+  "RecipeFormatVersion": "2020-01-25",
+  "ComponentName": "${component_name}",
+  "ComponentVersion": "${component_version}",
+  "ComponentDescription": "A component that runs a Docker container from S3.",
+  "ComponentPublisher": "NAME_OF_PUBLISHER",
+  "ComponentDependencies": {
+    "aws.greengrass.DockerApplicationManager": {
+      "VersionRequirement": "~2.0.0"
+    },
+    "aws.greengrass.TokenExchangeService": {
+      "VersionRequirement": "~2.0.0"
+    }
+  },
+  "ComponentConfiguration": {
+    "DefaultConfiguration": {
+      "topic": "thesis/docker",
+      "message": "Hello, World!",
+      "qos": "1",
+      "accessControl": {
+        "aws.greengrass.ipc.pubsub": {
+          "dockercontainer:pubsub:1": {
+            "policyDescription": "Allows access to publish to Pub and Sub topics.",
+            "operations": [
+              "aws.greengrass#SubscribeToTopic"
+            ],
+            "resources": [
+              "thesis/docker"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Manifests": [
+    {
+      "Platform": {
+        "os": "all"
+      },
+      "Lifecycle": {
+        "run": "docker run -v {kernel:rootPath}/ipc.socket:{kernel:rootPath}/ipc.socket -v /home/pi/mastergit/audio_files/100:/app/files -e SVCUID -e AWS_GG_NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT -e MQTT_TOPIC=\"{configuration:/topic}\" -e MQTT_MESSAGE=\"{configuration:/message}\" -e MQTT_QOS=\"{configuration:/qos}\" --rm account-id.dkr.ecr.eu-central-1.amazonaws.com/repository:image-name"
+      },
+      "Artifacts": [
+        {
+          "URI": "docker:account-id.dkr.ecr.eu-central-1.amazonaws.com/repository:image-name"
+        }
+      ]
+    }
+  ]
+}

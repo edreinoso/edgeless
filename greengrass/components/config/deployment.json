@@ -1,0 +1,35 @@
+{
+    "targetArn": "arn:aws:iot:aws-region:account-id:thing/things-name",
+    "deploymentName": "${deployment_description}",
+    "components": {
+        "aws.greengrass.Cli": {
+            "componentVersion": "2.10.2",
+            "aws.greengrass.LocalDebugConsole": {
+                "componentVersion": "2.3.0"
+            },
+            "aws.greengrass.LogManager": {
+                "componentVersion": "2.3.4",
+            },
+            "native": {
+                "componentVersion": ""
+            },
+            "ncp": {
+                "componentVersion": ""
+            },
+            "depedencies": {
+                "componentVersion": ""
+            },
+            "exp1_gateway_read": {
+                "componentVersion": ""
+            },
+            "exp1_gateway_write": {
+                "componentVersion": ""
+            },
+            "exp2_gateway_read": {
+                "componentVersion": ""
+            },
+            "exp2_gateway_write": {
+                "componentVersion": ""
+            }
+        }
+    }

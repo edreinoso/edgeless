@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  SignalPort:
+    Type: Number
+    Default: 3100
+  SignalImage:
+    Type: String
+    Description: Image version of the signal process
+  CertificateArn:
+    Type: String
+    Description: Certificate Arn
+
+Resources:
+  SecurityStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/security/template.yaml
+      Parameters:
+        SignalPort: !Ref SignalPort
+
+  # Database
+  DDBStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/ddb/template.yaml
+
+  # Serverless Functions
+  LambdaStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/lambda/template.yaml
+  
+  # Containers
+  EcsStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/container/template.yaml
+      Parameters:
+        Alb2FargateSg: !GetAtt SecurityStack.Outputs.Alb2FargateContainersSGId
+        FargateSg: !GetAtt SecurityStack.Outputs.FargateAlbSGId
+        SignalPort: !Ref SignalPort
+        SignalImage: !Ref SignalImage
+
+  # Object Storage
+  S3Stack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/s3/template.yaml
+      Parameters:
+        CloudSignalProcessFunctionArn: !GetAtt LambdaStack.Outputs.CloudSignalProcessFunctionArn
+
+  # API
+  ApiStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/api/template.yaml
+      Parameters:
+        CloudSignalProcessFunctionArn: !GetAtt LambdaStack.Outputs.CloudSignalProcessFunctionArn
+        CloudSignalProcessConcurrentFunctionArn: !GetAtt LambdaStack.Outputs.CloudSignalProcessConcurrentFunctionArn
+        AlbEndpoint: !GetAtt EcsStack.Outputs.AlbEndpoint
+        SignalPort: !Ref SignalPort
+
+  # DNS 
+  Route53Records:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: sub-templates/r53/template.yaml
+      Parameters:
+        CertificateArn: !Ref CertificateArn
+        ApiGatewayRestApiId: !GetAtt ApiStack.Outputs.ApiGatewayRestApiId
+        ApiGatewayStageId: !GetAtt ApiStack.Outputs.ApiGatewayStageId

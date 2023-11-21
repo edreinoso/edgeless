@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  CloudSignalProcessFunctionArn:
+    Type: String
+    Description: Signal processing function arn
+  BucketName:
+    Type: String
+    Default: cloud-signal-throughput-experiment
+
+Resources:
+  MyS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: !Ref BucketName

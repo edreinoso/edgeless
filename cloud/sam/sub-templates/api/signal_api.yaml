@@ -1,0 +1,172 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  CloudSignalProcessFunctionArn:
+    Type: String
+    Description: Sequential lambda function to process signal
+  CloudSignalProcessConcurrentFunctionArn:
+    Type: String
+    Description: Concurrent lambda function to process signal
+  AlbEndpoint:
+    Type: String
+    Description: Alb HTTP endpoint
+  SignalPort:
+    Type: String
+    Description: Port for the signal processing application
+
+Resources:
+  ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        ApiKeySourceType: HEADER
+        Description: API gateway for signal processing
+        EndpointConfiguration:
+          Types:
+            - EDGE
+        Name: signal-process-cloud-throughput
+
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref ApiGatewayRestApi
+      Schema: {}
+
+  ApiGatewayResourceSortingLambda:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'lambdas'
+      RestApiId: !Ref ApiGatewayRestApi
+  
+  ApiGatewayResourceSignalConcurrentLambda:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'lambdac'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayMethodSignalLambda:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        ConnectionType: INTERNET
+        Credentials: !GetAtt ApiGatewayIamRole.Arn
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_MATCH
+        TimeoutInMillis: 29000
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CloudSignalProcessFunctionArn}/invocations'
+      OperationName: 'lambdas'
+      ResourceId: !Ref ApiGatewayResourceSortingLambda
+      RestApiId: !Ref ApiGatewayRestApi
+  
+  ApiGatewayMethodSignalConcurrentLambda:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        ConnectionType: INTERNET
+        Credentials: !GetAtt ApiGatewayIamRole.Arn
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_MATCH
+        TimeoutInMillis: 29000
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CloudSignalProcessConcurrentFunctionArn}/invocations'
+      OperationName: 'lambdac'
+      ResourceId: !Ref ApiGatewayResourceSignalConcurrentLambda
+      RestApiId: !Ref ApiGatewayRestApi
+
+  # This is for the service, should be updated if used
+  ApiGatewayResourceSignalFargate:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'fargate'
+      RestApiId: !Ref ApiGatewayRestApi
+      
+  ApiGatewayMethodSignalFargate:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        ConnectionType: INTERNET
+        IntegrationHttpMethod: POST
+        PassthroughBehavior: WHEN_NO_MATCH
+        TimeoutInMillis: 29000
+        Type: HTTP
+        Uri: !Join
+          - ''
+          - - 'http://'
+            - !Ref AlbEndpoint
+            - ':'
+            - !Ref SignalPort
+            - '/signal'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates: { "application/json": "" }
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels: { "application/json": "Empty" }
+      OperationName: 'fargate'
+      ResourceId: !Ref ApiGatewayResourceSignalFargate
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+      - ApiGatewayMethodSignalLambda
+      - ApiGatewayMethodSignalConcurrentLambda
+      - ApiGatewayMethodSignalFargate
+    Properties:
+      Description: Lambda API Deployment
+      RestApiId: !Ref ApiGatewayRestApi
+  
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      DeploymentId: !Ref ApiGatewayDeployment
+      Description: Stage v0, only Lambda Function
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: 'v0'
+
+  ApiGatewayIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'apigateway.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: LambdaAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action: 'lambda:*'
+                Resource: 
+                  - !Ref CloudSignalProcessFunctionArn
+                  - !Ref CloudSignalProcessConcurrentFunctionArn
+
+Outputs:
+  ApiGatewayRestApiId:
+    Description: "Rest Api Id Output"
+    Value: !Ref ApiGatewayRestApi
+  ApiGatewayStageId:
+    Description: "Rest Api Stage Output"
+    Value: !Ref ApiGatewayStage

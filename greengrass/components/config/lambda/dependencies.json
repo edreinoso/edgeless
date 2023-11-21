@@ -1,0 +1,14 @@
+{
+    "RecipeFormatVersion": "2020-01-25",
+    "ComponentName": "${componet_name}",
+    "ComponentDescription": "Install Dependecies for Lambda Function",
+    "ComponentPublisher": "Ed",
+    "ComponentVersion": "${component_version}",
+    "Manifests": [
+        {
+            "Lifecycle": {
+                "install": "python3 -m pip install --user boto3 awsiotsdk wave scipy"
+            }
+        }
+    ]
+}

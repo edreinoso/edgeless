@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  SignalPort:
+    Type: String
+    Description: Port for the signal processing application
+
+Resources:
+  FargateAlbSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG for the Fargate ALB
+      GroupName: FargateAlbSG
+      SecurityGroupIngress:
+        - CidrIpv6: ::/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: 'Inbound rule for IPv6 traffic on quicksort listener'
+        - CidrIp: 0.0.0.0/0
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: TCP
+          Description: 'Inbound rule for IPv4 traffic on quicksort listener'
+        - CidrIpv6: ::/0
+          FromPort: !Ref SignalPort
+          ToPort: !Ref SignalPort
+          IpProtocol: TCP
+          Description: 'Inbound rule for IPv6 traffic on signal processing listener'
+        - CidrIp: 0.0.0.0/0
+          FromPort: !Ref SignalPort
+          ToPort: !Ref SignalPort
+          IpProtocol: TCP
+          Description: 'Inbound rule for IPv4 traffic on signal processing listener'
+  
+  Alb2FargateContainers:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG for traffic between ALB and containers
+      GroupName: Alb2FargateContainers
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          SourceSecurityGroupId: !GetAtt FargateAlbSG.GroupId
+          Description: 'Inbound rule for all traffic'
+
+Outputs:
+  Alb2FargateContainersSGId:
+    Description: "ALB Fargate Container Group Id"
+    Value: !GetAtt Alb2FargateContainers.GroupId
+  
+  FargateAlbSGId:
+    Description: "Fargate Container Group Id"
+    Value: !GetAtt FargateAlbSG.GroupId

@@ -1,0 +1,20 @@
+{
+    "logsUploaderConfiguration": {
+        "systemLogsConfiguration": {
+            "uploadToCloudWatch": "true",
+            "minimumLogLevel": "INFO",
+            "deleteLogFileAfterCloudUpload": "false"
+        },
+        "componentLogsConfigurationMap": {
+            "lambda_ggcontainer_pinned": {
+                "minimumLogLevel": "INFO",
+                "deleteLogFileAfterCloudUpload": "false"
+            },
+            "lambda_nocontainer_pinned": {
+                "minimumLogLevel": "INFO",
+                "deleteLogFileAfterCloudUpload": "false"
+            }
+        }
+    },
+    "periodicUploadIntervalSec": "300"
+}

@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+Parameters:
+  SignalImage:
+    Type: String
+    Description: Image version of the signal process
+  ECSCluster:
+    Type: String
+    Description: Cluster
+  SignalRole:
+    Type: String
+    Description: Role ARN for the signal task definition
+
+Resources:
+  MySignalProcessTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      RequiresCompatibilities:
+        - "FARGATE"
+      # this has to be dynamic to pull the account number
+      TaskRoleArn: !Ref SignalRole
+      ExecutionRoleArn: !Ref SignalRole
+      Cpu: 256
+      Memory: 512
+      NetworkMode: "awsvpc"
+      ContainerDefinitions:
+        - Name: "signal-process"
+          Image: !Join
+            - ''
+            - - '109139691401.dkr.ecr.eu-central-1.amazonaws.com/signal-process:'
+              - !Ref SignalImage
+          MemoryReservation: 256
+          Memory: 512
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+          LogConfiguration:
+            LogDriver: "awslogs"
+            Options:
+              awslogs-region: eu-central-1
+              awslogs-create-group: true
+              awslogs-group: my-signal-processs-container
+              awslogs-stream-prefix: ecs
+  

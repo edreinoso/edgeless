@@ -1,0 +1,38 @@
+{
+    "lambdaArn": "arn:aws:lambda:eu-central-1:109139691401:function:lambda_greengrass:${function_version}",
+    "componentName": "${component_name}",
+    "componentVersion": "${component_version}",
+    "componentDependencies": {
+        "lambda_function_depedencies": {
+            "versionRequirement": "1.0.3",
+            "dependencyType": "HARD"
+        }
+    },
+    "componentLambdaParameters": {
+        "eventSources": [
+            {
+                "topic": "lambda/greengrass/pinned",
+                "type": "PUB_SUB"
+            }
+        ],
+        "maxQueueSize": 1000,
+        "maxInstancesCount": 100,
+        "maxIdleTimeInSeconds": 60,
+        "timeoutInSeconds": 3,
+        "statusTimeoutInSeconds": 60,
+        "pinned": true,
+        "inputPayloadEncodingType": "json",
+        "environmentVariables": {
+            "lambda_type": "ggcontainer_pinned"
+        },
+        "linuxProcessParams": {
+            "isolationMode": "GreengrassContainer",
+            "containerParams": {
+                "memorySizeInKB": 256000,
+                "mountROSysfs": false,
+                "volumes": [],
+                "devices": []
+            }
+        }
+    }
+}
